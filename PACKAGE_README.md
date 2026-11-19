@@ -62,6 +62,7 @@ structural-reliability-lab.html   single-file build
 README.md                         project overview
 requirements.md                   requirements / design decisions
 PACKAGE_README.md                 this file
+AGENTS.md                         AI-agent repository map (not a human README)
 src/                              page source
 code/                             module-by-module JS reference
 python/                           Python reference
