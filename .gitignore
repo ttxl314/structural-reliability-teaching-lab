@@ -1,0 +1,21 @@
+# Temporary/debug artifacts
+__pycache__/
+*.py[cod]
+_tmp/
+backup/
+*.log
+null
+
+# Local browser/Edge debug profiles
+edgeprof*/
+prof_*/
+*.err
+
+# Unrelated root-level source material
+/*.png
+/plot_*.py
+/_*_check.py
+/JCSS 2026*
+
+# Extracted English delivery package (keep dist/*.zip)
+/dist/structural-reliability-lab-package/

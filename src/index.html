@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>可靠度方法对比实验台 · 结构可靠度教学演示</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">β</div>
+      <div class="brand-text">
+        <div class="brand-title">可靠度方法对比实验台</div>
+        <div class="brand-sub">同一道题 · 六种算法 · 一步一步看</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn ghost lang-btn" id="langToggle" title="Switch to English" aria-label="Switch to English">EN</button>
+      <button class="btn primary" id="btnReset">重置</button>
+    </div>
+  </header>
+
+  <div class="mean-warning" id="meanWarning" hidden></div>
+
+  <div class="shell">
+    <nav class="rail" id="rail" aria-label="站台导航"></nav>
+
+    <main class="stage" id="stage">
+
+      <!-- ========================== 0 Overview ========================== -->
+      <section class="station" data-station="0">
+        <div class="station-head">
+          <div>
+            <div class="eyebrow">00 · 总览</div>
+            <h1>同一道题，为什么不是一个答案？</h1>
+            <p class="lede">
+              主例题 <span class="mono">g(X) = X₁² − 2X₂</span>，
+              <span class="mono">X₁ ~ N(10,2)</span>，<span class="mono">X₂ ~ N(20,5)</span>，
+              <span class="mono">ρ = 0.5</span>。先看差异，再逐个拆假设。
+            </p>
+          </div>
+          <div class="head-actions">
+            <button class="btn small ghost" data-code="overview">算法地图</button>
+          </div>
+        </div>
+
+        <div class="overview-cards" id="methodCards"></div>
+
+        <div class="overview-grid">
+          <div class="card">
+            <div class="card-title">同题对比：β / P<sub>f</sub> <span class="muted">颜色 = 方法；Pf 为 log 轴</span></div>
+            <div class="pf-bars" id="pfBars"></div>
+          </div>
+          <div class="card method-map-card">
+            <div class="card-title">这页怎么走</div>
+            <div class="method-map">
+              <div class="map-node"><b>X 空间</b><span>斜椭圆、相关</span></div>
+              <div class="map-arrow">→</div>
+              <div class="map-node"><b>U 空间</b><span>圆、β = 距离</span></div>
+              <div class="map-arrow">→</div>
+              <div class="map-node"><b>线性化</b><span>均值点 / 验算点</span></div>
+              <div class="map-arrow">→</div>
+              <div class="map-node"><b>Pf</b><span>Φ(−β) 或模拟</span></div>
+            </div>
+            <div class="map-note">
+              先站台 1 看变换，再站台 3–5 看三种线性化，站台 6 加曲率，站台 7 用模拟做基准。
+            </div>
+          </div>
+        </div>
+
+        <div class="callout" id="overviewCallout">
+          <b>先别急着算。</b>
+          4.80% 与 1.62% 的差别不在算术，在“在哪儿线性化、把边界当成什么形状、用多少个样本”。
+          点任意卡片跳到对应站台；右侧结果栏会一直跟着当前参数。
+        </div>
+      </section>
+
+      <!-- ==================== 1 Variables and step-by-step transform ==================== -->
+      <section class="station" data-station="1">
+        <div class="station-head">
+          <div>
+            <div class="eyebrow">01 · 变量与空间变换</div>
+            <h1>把“最可能”变成“最近”</h1>
+            <p class="lede">
+              一步一步：原始 X → 中心化 → 标准化 → 白化。公式走到哪，图就变到哪；
+              最后一步把斜椭圆变成同心圆，β 就是到原点的距离。
+            </p>
+          </div>
+          <div class="head-actions">
+            <button class="btn small ghost" data-code="transform">看伪代码</button>
+          </div>
+        </div>
+
+        <div class="transform-layout">
+          <div class="canvas-card">
+            <div class="canvas-head">
+              <div id="transformTitle">原始 X 空间</div>
+              <div class="stepper">
+                <button class="step-btn" id="transPrev" aria-label="上一步">←</button>
+                <span id="transStepLabel">1 / 4</span>
+                <button class="step-btn" id="transNext" aria-label="下一步">→</button>
+                <button class="btn small ghost" id="transPlay">播放</button>
+              </div>
+            </div>
+            <canvas id="transCanvas"></canvas>
+            <div class="canvas-foot" id="transformNote"></div>
+          </div>
+
+          <div class="transform-side">
+            <div class="step-list" id="transformSteps"></div>
+            <div class="card formula-live" id="transformFormula"></div>
+            <div class="card matrix-card">
+              <div class="card-title">当前变换 <span class="muted">[ A | b ]</span></div>
+              <div class="matrix" id="transformMatrix"></div>
+            </div>
+            <div class="card compact">
+              <div class="card-title">变换方式</div>
+              <div class="segmented" id="transMode">
+                <button data-mode="chol" class="active">Cholesky</button>
+                <button data-mode="pca">PCA</button>
+              </div>
+              <div class="tiny muted" style="margin-top:8px">
+                两者只差一个正交旋转；β、Pf 不变，验算点坐标不同。
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================== 2 Probability interference ======================== -->
+      <section class="station" data-station="2">
+        <div class="station-head">
+          <div>
+            <div class="eyebrow">02 · 概率干涉</div>
+            <h1>R 与 S 重叠多少，才算失效？</h1>
+            <p class="lede">
+              重叠面积只是“看起来危险”；真正的 P<sub>f</sub> 是
+              <span class="mono">∫ f<sub>S</sub>(s) F<sub>R</sub>(s) ds</span>。
+              下面三张图把“干涉”“失效积分”“安全裕度”拆开。
+            </p>
+          </div>
+          <div class="head-actions">
+            <button class="btn small ghost" data-code="interference">看伪代码</button>
+          </div>
+        </div>
+
+        <div class="interference-layout">
+          <div class="canvas-card intf-main">
+            <div class="canvas-head">
+              <div>① 应力-强度干涉：f<sub>R</sub> 与 f<sub>S</sub>（绿色 h(s) 为失效概率密度）</div>
+              <div class="muted" id="intfBeta">β = 3.000</div>
+            </div>
+            <canvas id="intfCanvas"></canvas>
+          </div>
+
+          <div class="canvas-card intf-small">
+            <div class="canvas-head">
+              <div>② 失效概率密度 h(s) = f<sub>S</sub>(s)·F<sub>R</sub>(s)</div>
+              <div class="muted">面积 = P<sub>f</sub></div>
+            </div>
+            <canvas id="intfIntegrandCanvas"></canvas>
+          </div>
+
+          <div class="canvas-card intf-small">
+            <div class="canvas-head">
+              <div>③ 安全裕度 g = R − S</div>
+              <div class="muted">g &lt; 0 即失效</div>
+            </div>
+            <canvas id="intfMarginCanvas"></canvas>
+          </div>
+
+          <div class="interference-side">
+            <div class="controls" id="intfControls"></div>
+            <div class="card formula-live" id="intfFormula"></div>
+            <div class="card compact">
+              <div class="card-title">形式敏感：同一失效面，换个写法</div>
+              <div id="intfFormTable"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== 3 Mean-value first-order method ====================== -->
+      <section class="station" data-station="3">
+        <div class="station-head">
+          <div>
+            <div class="eyebrow">03 · 均值一次二阶矩（MVFOSM）</div>
+            <h1>在均值点画一条切线</h1>
+            <p class="lede">
+              只要 <span class="mono">g(μ)</span> 和 <span class="mono">∇g(μ)</span>。
+              快，但切线离验算点越远，误差越大；换个代数写法，β 还会变。
+            </p>
+          </div>
+          <div class="head-actions">
+            <button class="btn small ghost" data-code="mvfosm">看伪代码</button>
+          </div>
+        </div>
+
+        <div class="two-view">
+          <div class="canvas-card">
+            <div class="canvas-head">
+              <div>X 空间：均值点切线</div>
+              <div class="muted" id="mvXTag"></div>
+            </div>
+            <canvas id="mvXCanvas"></canvas>
+          </div>
+          <div class="canvas-card">
+            <div class="canvas-head">
+              <div>U 空间：原点到切线的垂足</div>
+              <div class="muted" id="mvUTag"></div>
+            </div>
+            <canvas id="mvUCanvas"></canvas>
+          </div>
+        </div>
+
+        <div class="below-grid">
+          <div class="card formula-live" id="mvFormula"></div>
+          <div class="card">
+            <div class="card-title">形式敏感：同一失效面，换个写法</div>
+            <div id="mvFormBody"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">误差从哪来</div>
+            <div id="mvErrorBody"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 4 Advanced first-order method ===================== -->
+      <section class="station" data-station="4">
+        <div class="station-head">
+          <div>
+            <div class="eyebrow">04 · 改进的一次二阶矩（AFOSM / 验算点法）</div>
+            <h1>沿当前 α 方向，直接找到边界</h1>
+            <p class="lede">
+              每一步用方向余弦 α 定一条从均值出发的射线，沿射线解
+              <span class="mono">g = 0</span> 得到 β，再更新 α。
+              它和 FORM 是同一设计点的两种走法：AFOSM 在 X 空间找，FORM 在 U 空间找。
+            </p>
+          </div>
+          <div class="head-actions">
+            <button class="btn small ghost" data-code="afosm">看伪代码</button>
+          </div>
+        </div>
+
+        <div class="afosm-layout">
+          <div class="canvas-card">
+            <div class="canvas-head">
+              <div>X 空间：方向搜索</div>
+              <div class="muted" id="afStepTag"></div>
+            </div>
+            <canvas id="afCanvas"></canvas>
+            <div class="playbar">
+              <button class="step-btn" id="afPrev">◀</button>
+              <button class="btn small" id="afPlay">播放</button>
+              <button class="step-btn" id="afNext">▶</button>
+              <button class="btn small ghost" id="afReset">回到起点</button>
+              <span class="muted" id="afStatus"></span>
+            </div>
+          </div>
+
+          <div class="afosm-side">
+            <div class="card">
+              <div class="card-title">迭代表 <span class="muted">点一行回放</span></div>
+              <div id="afTable"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">AFOSM vs FORM</div>
+              <div id="afCompareBody"></div>
+            </div>
+            <div class="card formula-live" id="afFormula"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================ 5 FORM/HLRF ======================= -->
+      <section class="station" data-station="5">
+        <div class="station-head">
+          <div>
+            <div class="eyebrow">05 · FORM / HLRF</div>
+            <h1>切线 → 垂足 → 再切线</h1>
+            <p class="lede">
+              U 空间里，每一步在当前点取切线，再取原点到切线的垂足。
+              通常 6 步收敛（参数不同会更多）；第 1 步正好是均值点法，所以 MVFOSM 可以看作 HLRF 的“第 1 步”。
+            </p>
+          </div>
+          <div class="head-actions">
+            <button class="btn small ghost" data-code="form">看伪代码</button>
+          </div>
+        </div>
+
+        <div class="form-layout">
+          <div class="canvas-card large">
+            <div class="canvas-head">
+              <div>U 空间：HLRF 迭代</div>
+              <div class="muted" id="formStepTag"></div>
+            </div>
+            <canvas id="formCanvas"></canvas>
+            <div class="playbar">
+              <button class="step-btn" id="formPrev">◀</button>
+              <button class="btn small" id="formPlay">播放</button>
+              <button class="step-btn" id="formNext">▶</button>
+              <button class="btn small ghost" id="formReset">回到起点</button>
+              <span class="muted" id="formStatus"></span>
+            </div>
+          </div>
+
+          <div class="form-side">
+            <div class="card">
+              <div class="card-title">迭代表 <span class="muted">点一行回放</span></div>
+              <div id="formTable"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">α² 贡献 <span class="muted">谁在控制 β</span></div>
+              <div id="alphaBars"></div>
+            </div>
+            <div class="card formula-live" id="formFormula"></div>
+          </div>
+        </div>
+
+        <div class="two-mini-charts">
+          <div class="canvas-card mini">
+            <div class="canvas-head"><div>β<sub>k</sub> 收敛</div><div class="muted" id="betaChartTag"></div></div>
+            <canvas id="betaChart"></canvas>
+          </div>
+          <div class="canvas-card mini">
+            <div class="canvas-head"><div>|g(U<sub>k</sub>)| 残差</div><div class="muted">log 轴</div></div>
+            <canvas id="gChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================== 6 SORM ========================== -->
+      <section class="station" data-station="6">
+        <div class="station-head">
+          <div>
+            <div class="eyebrow">06 · SORM / Breitung</div>
+            <h1>β 不变，P<sub>f</sub> 因曲率修正</h1>
+            <p class="lede">
+              FORM 把边界当直线；SORM 在验算点加一个曲率 κ，把边界当抛物线。
+              默认参数下 κ≈0.061、修正因子 0.941；改参数后看右侧指标。
+            </p>
+          </div>
+          <div class="head-actions">
+            <button class="btn small ghost" data-code="sorm">看伪代码</button>
+          </div>
+        </div>
+
+        <div class="sorm-layout">
+          <div class="canvas-card large">
+            <div class="canvas-head">
+              <div>U* 附近：切线 vs 密切抛物线</div>
+              <div class="muted" id="sormTag"></div>
+            </div>
+            <canvas id="sormCanvas"></canvas>
+            <div class="playbar">
+              <label class="switch"><input type="checkbox" id="sormExag"> 曲率示意放大 ×3</label>
+              <label class="switch"><input type="checkbox" id="sormCircle"> 显示密切圆</label>
+              <span class="muted">放大只影响画图，不影响计算</span>
+            </div>
+          </div>
+
+          <div class="sorm-side">
+            <div class="metric-grid" id="sormMetrics"></div>
+            <div class="card">
+              <div class="card-title">P<sub>f</sub> 对比 <span class="muted">相对精确值的误差</span></div>
+              <div id="sormBars"></div>
+            </div>
+            <div class="card formula-live" id="sormFormula"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================== 7 Monte Carlo ========================== -->
+      <section class="station" data-station="7">
+        <div class="station-head">
+          <div>
+            <div class="eyebrow">07 · 蒙特卡洛</div>
+            <h1>用大样本做基准</h1>
+            <p class="lede">
+              不线性化，直接数 <span class="mono">g &lt; 0</span> 的比例；误差 ∝ 1/√N。
+              固定种子可复现，95% CI 告诉你“每次不一样”有多大。
+            </p>
+          </div>
+          <div class="head-actions">
+            <button class="btn small ghost" data-code="mc">看伪代码</button>
+          </div>
+        </div>
+
+        <div class="mc-layout">
+          <div class="canvas-card large">
+            <div class="canvas-head">
+              <div>样本云：<span id="mcSpaceLabel">X 空间</span></div>
+              <div class="segmented" id="mcSpaceToggle">
+                <button data-space="x" class="active">X</button>
+                <button data-space="u">U</button>
+              </div>
+            </div>
+            <div class="playbar playbar-top">
+              <button class="btn small ghost" id="mcReset">重置</button>
+              <label class="mc-control">每批
+                <input type="number" id="mcBatch" min="100" max="20000" step="100" value="1000" aria-label="每批样本数">
+                <span>个</span>
+              </label>
+              <button class="btn small ghost" id="mcStep">抽一批</button>
+              <label class="mc-control">目标 N
+                <input type="number" id="mcTarget" min="1000" max="100000" step="1000" value="100000" aria-label="目标样本数">
+              </label>
+              <button class="btn small" id="mcRunTo">重抽到 N</button>
+              <button class="btn small ghost" id="mcPlay">连续抽样</button>
+              <span class="muted" id="mcStatus"></span>
+            </div>
+            <canvas id="mcCanvas"></canvas>
+          </div>
+
+          <div class="mc-side">
+            <div class="metric-grid" id="mcMetrics"></div>
+            <div class="canvas-card mini">
+              <div class="canvas-head"><div>运行估计与 95% CI</div><div class="muted" id="mcChartTag"></div></div>
+              <canvas id="mcChart"></canvas>
+            </div>
+            <div class="card formula-live" id="mcFormula"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= 8 Formulas and code card ======================= -->
+      <section class="station" data-station="8">
+        <div class="station-head">
+          <div>
+            <div class="eyebrow">08 · 公式与代码卡</div>
+            <h1>一页把方法串起来</h1>
+            <p class="lede">
+              公式、假设、坑、伪代码；可打印，也可课后慢慢看。
+              每个方法站台右上角的“看伪代码”是同一份内容的单页版。
+            </p>
+          </div>
+          <div class="head-actions">
+            <button class="btn primary" id="printCard">打印公式卡</button>
+          </div>
+        </div>
+        <div class="formula-sheet" id="formulaSheet"></div>
+      </section>
+
+      <!-- ====================== 9 Combined plot and tangent error ====================== -->
+      <section class="station" data-station="9">
+        <div class="station-head">
+          <div>
+            <div class="eyebrow">09 · 同图与切线误差</div>
+            <h1>所有方法，同一张图</h1>
+            <p class="lede">
+              先把 MVFOSM / AFOSM / FORM / SORM 的切线与设计点叠在同一张 X 空间图上；
+              再用“线性 / 凸 / 凹 / 圆外”四种失效域，量一量“直线切线 + Φ(−β)”到底会错多少。
+            </p>
+          </div>
+          <div class="head-actions">
+            <button class="btn small ghost" data-code="overview">看伪代码</button>
+          </div>
+        </div>
+
+        <div class="final-grid">
+          <div class="canvas-card equal-mode" id="allMethodsCard">
+            <div class="canvas-head">
+              <div>同一失效面：MVFOSM / AFOSM / FORM / SORM <span class="muted" id="allSpaceName">X 空间</span></div>
+              <div class="head-tools">
+                <div class="segmented" id="allSpaceToggle">
+                  <button data-space="x" class="active">X</button>
+                  <button data-space="y">Y</button>
+                  <button data-space="z">Z</button>
+                  <button data-space="u">U</button>
+                </div>
+                <button class="btn small ghost" id="allZoomOut" title="缩小">−</button>
+                <button class="btn small ghost" id="allZoomIn" title="放大">+</button>
+                <button class="btn small ghost" id="allZoomReset" title="重置缩放">⟲</button>
+              </div>
+            </div>
+            <canvas id="allMethodsCanvas"></canvas>
+            <div class="tiny muted" id="allMethodsNote"></div>
+          </div>
+
+          <div class="card tan-card">
+            <div class="card-title">切线误差：线性 / 凸 / 凹 / 极端 <span class="muted">同一设计点 β</span></div>
+            <div class="tan-controls">
+              <label>β <input type="range" id="tanBeta" min="1" max="3.5" step="0.05" value="2.108"><b id="tanBetaVal">2.108</b></label>
+              <label>κ <input type="range" id="tanKappa" min="0" max="1.5" step="0.05" value="0.5"><b id="tanKappaVal">0.50</b></label>
+            </div>
+            <div class="segmented" id="tanCaseToggle">
+              <button data-case="linear" class="active">线性</button>
+              <button data-case="convex">凸</button>
+              <button data-case="concave">凹</button>
+              <button data-case="extreme">圆外</button>
+            </div>
+            <canvas id="tanCanvas"></canvas>
+            <div id="tanTable"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 10 Custom limit-state function ===================== -->
+      <section class="station" data-station="10">
+        <div class="station-head">
+          <div>
+            <div class="eyebrow">10 · 自定义函数实验室</div>
+            <h1>输入你的 g(x₁,x₂)，现场算一遍</h1>
+            <p class="lede">
+              把这里当成一个小型可靠度计算器：输入极限状态函数、设好均值和标准差、勾选方法，
+              立即看到 g=0 曲线、失效域、设计点、β 和 P<sub>f</sub>。
+            </p>
+          </div>
+          <div class="head-actions">
+            <button class="btn small ghost" id="customReset">恢复默认</button>
+          </div>
+        </div>
+
+        <div class="custom-grid">
+          <div class="canvas-card custom-canvas-card">
+            <div class="canvas-head">
+              <div>自定义极限状态面 <span class="muted">当前函数 + 正态 X₁,X₂</span></div>
+              <div class="head-tools"><span class="tiny muted" id="customStatus">准备计算</span></div>
+            </div>
+            <canvas id="customCanvas"></canvas>
+            <div class="canvas-foot" id="customNote">输入函数后现场绘制 g=0 曲线和失效域。</div>
+          </div>
+
+          <div class="custom-side">
+            <div class="card">
+              <div class="card-title">函数 g(x₁,x₂) <span class="muted">+ − × ÷ ^，sin/exp/sqrt/min/max…</span></div>
+              <div class="function-row">
+                <span class="mono">g =</span>
+                <input id="customExpr" type="text" value="x1^2 - 2*x2" spellcheck="false" autocomplete="off">
+                <button class="btn small primary" id="customApply">计算</button>
+              </div>
+              <div class="function-examples">
+                <button data-custom-expr="x1^2 - 2*x2">抛物线</button>
+                <button data-custom-expr="x1 + x2 - 30">线性</button>
+                <button data-custom-expr="20 - sqrt(x1^2 + x2^2)">圆外</button>
+                <button data-custom-expr="x1*x2 - 50">乘积</button>
+                <button data-custom-expr="sin(x1) + x2 - 19">正弦</button>
+                <button data-custom-expr="sin(x1) + 2*cos(x2) + 1" title="多个互不连通的失效区；用于演示单设计点 FORM/SORM 的局限">多失效区</button>
+              </div>
+              <div class="tiny muted" style="margin-top:5px">“多失效区”示例有多个互不连通的失效域，单设计点 FORM/SORM 只是局部近似，请对照 MC。</div>
+              <div class="tiny" id="customExprMsg"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">数据位置 <span class="muted">正态边缘 + 相关系数</span></div>
+              <div id="customParams" class="controls compact-controls"></div>
+              <div class="tiny muted" style="margin-top:6px">改 μ/σ/ρ 会立即重算；σ 必须 &gt; 0。</div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">方法选择</div>
+              <div class="method-checks">
+                <label><input type="checkbox" id="customM-mvfosm" checked><span><i class="m-dot" style="background:#ff7f0e"></i>MVFOSM</span></label>
+                <label><input type="checkbox" id="customM-form" checked><span><i class="m-dot" style="background:#d62728"></i>FORM / AFOSM</span></label>
+                <label><input type="checkbox" id="customM-sorm" checked><span><i class="m-dot" style="background:#2ca02c"></i>SORM</span></label>
+                <label><input type="checkbox" id="customM-mc" checked><span><i class="m-dot" style="background:#9467bd"></i>MC 参考</span></label>
+              </div>
+              <div class="tiny muted" style="margin-top:5px">FORM 与 AFOSM 在正态空间是同一设计点；MC 每次 10 万样本。</div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">计算结果 <span class="muted">β / P<sub>f</sub></span></div>
+              <div id="customTable"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <aside class="inspector" id="inspector">
+      <div class="result-card" id="resultCard">
+        <div class="result-head">
+          <span id="resMethod">FORM</span>
+          <span class="badge" id="resBadge">近似</span>
+        </div>
+        <div class="result-main"><span id="resBeta">2.108</span><small>β</small></div>
+        <div class="result-grid">
+          <div><span id="resPf">1.750%</span><small>P<sub>f</sub></small></div>
+          <div><span id="resR">98.250%</span><small>可靠度</small></div>
+        </div>
+        <div class="result-note" id="resNote">验算点法，一阶近似</div>
+      </div>
+
+      <div class="card compact" id="paramCard">
+        <div class="card-title">主例题参数 <span class="muted">实时重算</span></div>
+        <div id="paramControls" class="controls compact-controls"></div>
+      </div>
+
+      <div class="card compact" id="compareCard">
+        <div class="card-title">方法对比 <span class="muted">当前参数</span></div>
+        <div id="compareTable"></div>
+      </div>
+
+      <div class="card compact notes-card">
+        <button class="notes-toggle" id="notesToggle">讲解要点 <span id="notesCaret">▾</span></button>
+        <div id="notesBody"></div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="statusbar">
+    <span id="statusText">就绪</span>
+    <span class="hint">←/→ 切换 · 0–9 直达 · C 自定义 · Space 播放 · S 单步 · R 重置 · F 全屏 · ? 帮助</span>
+    <span id="seedText" hidden title="仅用于蒙特卡洛抽样；FORM/SORM/MVFOSM 等确定性方法不受影响">MC seed 20261119</span>
+  </footer>
+</div>
+
+<!-- ============================== Dialogs ============================== -->
+<dialog id="codeDialog" class="dialog">
+  <div class="dialog-head">
+    <div>
+      <div class="dialog-eyebrow">典型代码</div>
+      <h2 id="codeTitle">算法伪代码</h2>
+    </div>
+    <button class="icon-btn" data-close="codeDialog" aria-label="关闭">×</button>
+  </div>
+  <div class="tabs" id="codeTabs">
+    <button data-tab="pseudo" class="active">伪代码</button>
+    <button data-tab="js">JS 实现</button>
+  </div>
+  <pre class="code-block"><code id="codeBody"></code></pre>
+  <div class="dialog-foot">
+    <span class="muted" id="codeNote">与页面实际计算一致</span>
+    <button class="btn small ghost" id="copyCode">复制</button>
+  </div>
+</dialog>
+
+<dialog id="helpDialog" class="dialog">
+  <div class="dialog-head">
+    <div>
+      <div class="dialog-eyebrow">使用说明</div>
+      <h2>怎么用这页</h2>
+    </div>
+    <button class="icon-btn" data-close="helpDialog" aria-label="关闭">×</button>
+  </div>
+  <div class="help-grid">
+    <div>
+      <h3>课堂操作</h3>
+      <ul class="clean">
+        <li><b>← / →</b> 切换站台；<b>0–9</b> 直达；<b>C</b> 打开自定义函数台。</li>
+        <li><b>Space</b> 播放/暂停；<b>S</b> 单步；<b>R</b> 重置。</li>
+        <li><b>F</b> 全屏；<b>?</b> 打开本帮助。</li>
+        <li>右侧参数滑块实时重算；结果栏一直跟着当前站台。</li>
+      </ul>
+      <h3>符号约定</h3>
+      <ul class="clean">
+        <li><span class="mono">α</span> 指向验算点：<span class="mono">α = −∇g(u*)/‖∇g(u*)‖</span>，所以 <span class="mono">u* = β α</span>、<span class="mono">x* = μ + L u*</span>。</li>
+        <li>教材若把 α 定义为梯度方向，会写成 <span class="mono">x* = μ − β α σ</span>，符号相反、本质相同。</li>
+        <li><span class="mono">P<sub>f</sub> = Φ(−β)</span> 只在半空间/线性边界下严格；非线性时是 FORM 近似。</li>
+      </ul>
+    </div>
+    <div>
+      <h3>数值自检</h3>
+      <p class="muted">页面所有数字都由 JS 当场计算。点下面按钮，与 Python 基准逐项比对。</p>
+      <button class="btn small" id="runSelfTest">运行数值自检</button>
+      <div id="selfTestBody" class="selftest-body"></div>
+      <h3>离线</h3>
+      <p class="muted">单文件、无网络请求、无 CDN；从 U 盘或桌面双击即可。公式以 SVG 内嵌，不依赖字体服务器。</p>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="routeDialog" class="dialog">
+  <div class="dialog-head">
+    <div>
+      <div class="dialog-eyebrow">课堂路线</div>
+      <h2>45 分钟怎么走</h2>
+    </div>
+    <button class="icon-btn" data-close="routeDialog" aria-label="关闭">×</button>
+  </div>
+  <ol class="route-list" id="routeList"></ol>
+  <div class="dialog-foot">
+    <span class="muted">点任意一行直接跳到该站台；时间可按课堂调整。</span>
+  </div>
+</dialog>
+
+<script src="js/math.js"></script>
+<script src="js/i18n-data.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/model.js"></script>
+<script src="js/formulas.js"></script>
+<script src="js/pseudocode.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/custom.js"></script>
+<script src="js/stations.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
