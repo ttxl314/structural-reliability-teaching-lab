@@ -4,6 +4,8 @@ This repository / package contains one offline teaching page, its source code,
 module-by-module reference implementations, Python and MATLAB versions, and the
 verification reports.
 
+**Version:** 1.0.0 (2026-11-20) · see `CHANGELOG.md`
+
 ## Quick start
 
 1. Open `structural-reliability-lab.html` in Chrome, Edge, or Firefox.

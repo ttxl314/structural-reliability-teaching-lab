@@ -3,6 +3,7 @@
 > **Audience:** AI coding agents.  
 > **Humans:** read `README.md` instead. This file is a machine-oriented map, not a user manual.  
 > **Repo:** structural-reliability-teaching-lab  
+> **Version:** 1.0.0  
 > **Primary language:** English source/comments/docs; Chinese is a runtime locale and is preserved in `docs/zh/`.
 
 ## 0. One-paragraph model
@@ -294,3 +295,17 @@ A change is complete only when:
 - if UI text changed: English audit is clean except the `中文` toggle label;
 - if layout changed: desktop and 390px mobile screenshots checked;
 - docs (English + `docs/zh/`) and package zips are updated if affected.
+
+## 12. Versioning and release
+
+- `VERSION` contains the current semantic version; `CHANGELOG.md` is the source of release notes.
+- Git tags/releases use `vMAJOR.MINOR.PATCH` (current: `v1.0.0`).
+- PATCH = fixes/docs/wording; MINOR = new station/method/language/UI feature;
+  MAJOR = incompatible URL/layout/numerical contract.
+- Every release should ship these assets:
+  - `structural-reliability-lab.html`
+  - `dist/structural-reliability-lab-html.zip`
+  - `dist/structural-reliability-lab-complete.zip`
+  - `docs/formula_card.pdf`
+- Before tagging: run §6, rebuild, refresh package ZIPs, check `git status` and the
+  privacy scan, then update `VERSION` + `CHANGELOG.md` and create the GitHub release.

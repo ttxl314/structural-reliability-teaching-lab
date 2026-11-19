@@ -2,6 +2,8 @@
 
 [Chinese README](docs/zh/README.md) · Chinese documentation: [docs/zh/](docs/zh/)
 
+**Version:** 1.0.0 (2026-11-20) · [Changelog](CHANGELOG.md)
+
 A **single-file, offline, double-click-to-open** teaching "lab bench" for structural reliability: around the main example `g(X) = X₁² − 2X₂` (`X₁ ~ N(10, 2)`, `X₂ ~ N(20, 5)`, `ρ = 0.5`), it compares **MVFOSM / AFOSM / FORM / SORM / Monte Carlo** side by side on the same problem, and cross-checks them against the exact value from 1-D conditional integration. Change one parameter and every method recomputes at once; press "single step" and the tangent, foot of the perpendicular and design point grow out step by step.
 
 - **Main page**: `structural-reliability-lab.html` (about 0.5 MB, self-contained)
